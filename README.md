@@ -277,6 +277,48 @@ The transaction is recorded in the audit trail.
 
 ---
 
+---
+
+# 🖥️ Application Screenshots
+
+### 🏠 CartPilot AI Shopping Interface
+
+The main interface allows users to describe their shopping requirements in natural language and define a spending limit.
+
+![CartPilot AI Shopping Interface](screenshots/hero.png)
+
+---
+
+### 🤖 AI Recommendation & Transaction Pipeline
+
+CartPilot combines AI product selection with deterministic guardrails, explicit user approval, and payment execution.
+
+![AI Assistant and Transaction Pipeline](screenshots/ai-assistant.png)
+
+---
+
+### 🏪 Merchant Catalog & Audit Trail
+
+The merchant catalog provides the products available to the AI agent, while the audit trail records important AI and transaction events.
+
+![Merchant Catalog and Audit Trail](screenshots/catalog-audit.png)
+
+---
+
+### 🛡️ Budget Guardrail
+
+When the recommended product exceeds the user's spending limit, CartPilot blocks the transaction before payment.
+
+![Budget Guardrail Block](screenshots/budget-block.png)
+
+---
+
+### 💳 Verified Payment
+
+After guardrails pass and the user approves the purchase, CartPilot creates the Razorpay test payment order and verifies the payment server-side.
+
+![Successful Payment Verification](screenshots/payment-success.png)
+
 # 🛡️ Security & Transaction Philosophy
 
 CartPilot follows a simple principle:
