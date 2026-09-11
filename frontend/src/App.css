@@ -1,0 +1,1250 @@
+/* =========================================================
+   CARTPILOT — DARK MODE UI
+   AI-Native Commerce / Agentic Shopping
+========================================================= */
+
+
+/* =========================================================
+   GLOBAL
+========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+
+  background: #080d18;
+  color: #f8fafc;
+}
+
+button,
+input {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   MAIN APP
+========================================================= */
+
+.app {
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(124, 58, 237, 0.12),
+      transparent 38%
+    ),
+    #080d18;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header {
+  height: 82px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 7%;
+
+  background: #0b1220;
+
+  border-bottom: 1px solid #1e293b;
+
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+.logo {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  color: #f8fafc;
+}
+
+.logo span {
+  color: #8b5cf6;
+}
+
+.header-badge {
+  padding: 10px 18px;
+
+  border: 1px solid #334155;
+  border-radius: 999px;
+
+  background: #111c2e;
+
+  color: #cbd5e1;
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   MAIN CONTAINER
+========================================================= */
+
+.container {
+  width: min(1200px, 92%);
+  margin: 0 auto;
+
+  padding: 55px 0 80px;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.hero {
+  text-align: center;
+  margin-bottom: 42px;
+}
+
+.hero h1 {
+  margin: 0;
+
+  font-size: clamp(38px, 5vw, 62px);
+  line-height: 1.05;
+
+  font-weight: 800;
+  letter-spacing: -2.5px;
+
+  color: #f8fafc;
+}
+
+.hero h1 span {
+  color: #8b5cf6;
+}
+
+.hero p {
+  margin: 18px auto 0;
+
+  max-width: 720px;
+
+  font-size: 18px;
+  line-height: 1.6;
+
+  color: #94a3b8;
+}
+
+
+/* =========================================================
+   SYSTEM STATUS
+========================================================= */
+
+.system-status {
+  width: fit-content;
+  max-width: 100%;
+
+  margin: 0 auto 36px;
+
+  padding: 11px 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 10px;
+
+  border: 1px solid #14532d;
+  border-radius: 999px;
+
+  background: #0b2117;
+
+  color: #4ade80;
+
+  font-size: 14px;
+}
+
+.system-status strong {
+  color: #4ade80;
+}
+
+.system-status span:last-child {
+  color: #86a894;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+
+  border-radius: 50%;
+
+  background: #22c55e;
+
+  box-shadow:
+    0 0 10px rgba(34, 197, 94, 0.7);
+}
+
+
+/* =========================================================
+   GENERAL CARDS
+========================================================= */
+
+.card {
+  background: #111827;
+
+  border: 1px solid #253047;
+
+  border-radius: 22px;
+
+  padding: 32px;
+
+  margin-bottom: 24px;
+
+  box-shadow:
+    0 15px 45px rgba(0, 0, 0, 0.22);
+}
+
+.card-title {
+  color: #f8fafc;
+
+  margin-top: 0;
+
+  font-size: 27px;
+  font-weight: 750;
+}
+
+
+/* =========================================================
+   AI ASSISTANT
+========================================================= */
+
+.ai-card {
+  background:
+    linear-gradient(
+      145deg,
+      #111827,
+      #0f172a
+    );
+
+  border: 1px solid #6d42d9;
+
+  border-radius: 24px;
+
+  padding: 38px;
+
+  margin: 0 auto 24px;
+
+  box-shadow:
+    0 0 0 1px rgba(139, 92, 246, 0.08),
+    0 25px 60px rgba(0, 0, 0, 0.3),
+    0 0 60px rgba(124, 58, 237, 0.08);
+}
+
+
+/* Center the AI assistant header */
+
+.ai-card-header {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  margin-bottom: 34px;
+}
+
+.ai-icon {
+  width: 58px;
+  height: 58px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 14px;
+
+  border-radius: 17px;
+
+  background: #24133f;
+
+  border: 1px solid #51319b;
+
+  font-size: 28px;
+
+  box-shadow:
+    0 0 25px rgba(139, 92, 246, 0.15);
+}
+
+.ai-card-header h2 {
+  margin: 0 0 7px;
+
+  font-size: 27px;
+  font-weight: 750;
+
+  color: #f8fafc;
+
+  letter-spacing: -0.6px;
+}
+
+.ai-card-header p {
+  margin: 0;
+
+  font-size: 15px;
+
+  color: #94a3b8;
+}
+
+
+/* =========================================================
+   FORM LABELS
+========================================================= */
+
+.input-label {
+  display: block;
+
+  margin-bottom: 9px;
+
+  text-align: left;
+
+  color: #cbd5e1;
+
+  font-size: 14px;
+  font-weight: 650;
+}
+
+
+/* =========================================================
+   INPUTS
+========================================================= */
+
+.ai-card input {
+  width: 100%;
+
+  padding: 16px 17px;
+
+  border: 1px solid #334155;
+  border-radius: 13px;
+
+  outline: none;
+
+  background: #080f1d;
+
+  color: #f8fafc;
+
+  font-size: 16px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.ai-card input::placeholder {
+  color: #64748b;
+}
+
+.ai-card input:focus {
+  border-color: #8b5cf6;
+
+  background: #0b1220;
+
+  box-shadow:
+    0 0 0 3px rgba(139, 92, 246, 0.16);
+}
+
+
+/* =========================================================
+   BUDGET
+========================================================= */
+
+.budget-row {
+  display: grid;
+
+  grid-template-columns: 1fr 190px;
+
+  gap: 18px;
+
+  align-items: end;
+
+  margin-top: 22px;
+}
+
+.budget-hint {
+  height: 53px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  padding: 7px 15px;
+
+  border: 1px solid #334155;
+  border-radius: 13px;
+
+  background: #0c1422;
+
+  text-align: center;
+}
+
+.budget-hint span {
+  font-size: 11px;
+
+  color: #64748b;
+}
+
+.budget-hint strong {
+  margin-top: 2px;
+
+  color: #f8fafc;
+
+  font-size: 17px;
+}
+
+
+/* =========================================================
+   PRIMARY BUTTON
+========================================================= */
+
+.primary-btn {
+  border: none;
+
+  border-radius: 12px;
+
+  padding: 14px 22px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #7c3aed,
+      #9333ea
+    );
+
+  color: white;
+
+  font-size: 15px;
+  font-weight: 700;
+
+  box-shadow:
+    0 8px 25px rgba(124, 58, 237, 0.25);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.primary-btn:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 12px 30px rgba(124, 58, 237, 0.35);
+}
+
+.primary-btn:active {
+  transform: translateY(0);
+}
+
+.primary-btn:disabled {
+  opacity: 0.55;
+
+  cursor: not-allowed;
+
+  transform: none;
+}
+
+.ask-btn {
+  display: block;
+
+  min-width: 190px;
+
+  margin: 25px auto 0;
+}
+
+
+/* =========================================================
+   AGENT FLOW
+========================================================= */
+
+.agent-flow {
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+
+  flex-wrap: wrap;
+
+  gap: 10px;
+
+  margin: 18px auto 0;
+
+  color: #cbd5e1;
+
+  font-size: 14px;
+}
+
+.agent-flow span {
+  padding: 9px 14px;
+
+  border: 1px solid #293548;
+
+  border-radius: 999px;
+
+  background: #111827;
+
+  color: #cbd5e1;
+
+  font-weight: 650;
+
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.agent-flow b {
+  color: #64748b;
+
+  font-weight: 500;
+}
+
+.flow-caption {
+  text-align: center;
+
+  margin: 10px 0 28px;
+
+  color: #64748b;
+
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   RECOMMENDATION
+========================================================= */
+
+.recommendation {
+  position: relative;
+
+  overflow: hidden;
+
+  background:
+    linear-gradient(
+      145deg,
+      #151128,
+      #111827
+    );
+
+  border: 1px solid #6d42d9;
+
+  border-radius: 24px;
+
+  padding: 36px;
+
+  margin-bottom: 30px;
+
+  box-shadow:
+    0 20px 55px rgba(0, 0, 0, 0.28),
+    0 0 50px rgba(124, 58, 237, 0.07);
+}
+
+.recommendation::before {
+  content: "AI";
+
+  position: absolute;
+
+  top: 20px;
+  right: 22px;
+
+  padding: 6px 10px;
+
+  border: 1px solid #51319b;
+
+  border-radius: 999px;
+
+  background: #24133f;
+
+  color: #a78bfa;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.recommendation h2 {
+  margin-top: 0;
+
+  text-align: center;
+
+  color: #f8fafc;
+
+  font-size: 30px;
+}
+
+.recommendation p {
+  color: #cbd5e1;
+
+  line-height: 1.6;
+}
+
+.recommendation .price {
+  color: #f8fafc;
+
+  font-size: 42px;
+  font-weight: 800;
+
+  text-align: center;
+}
+
+.recommendation .reason {
+  color: #94a3b8;
+
+  text-align: center;
+}
+
+
+/* =========================================================
+   GUARDRAIL
+========================================================= */
+
+.guardrail {
+  margin: 25px 0;
+
+  padding: 17px 20px;
+
+  border-radius: 13px;
+
+  border: 1px solid #166534;
+
+  background: #0b2117;
+
+  color: #4ade80;
+
+  text-align: center;
+
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.guardrail.blocked {
+  border-color: #7f1d1d;
+
+  background: #2a0e0e;
+
+  color: #f87171;
+}
+
+
+/* =========================================================
+   ACTION BUTTONS
+========================================================= */
+
+.button-row {
+  display: flex;
+
+  align-items: center;
+
+  gap: 14px;
+
+  flex-wrap: wrap;
+
+  margin-top: 22px;
+}
+
+.approve-btn {
+  border: none;
+
+  padding: 14px 24px;
+
+  border-radius: 12px;
+
+  background: #059669;
+
+  color: white;
+
+  font-size: 15px;
+  font-weight: 750;
+
+  box-shadow:
+    0 8px 22px rgba(5, 150, 105, 0.22);
+
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+.approve-btn:hover {
+  background: #10b981;
+
+  transform: translateY(-2px);
+}
+
+.reject-btn {
+  padding: 13px 23px;
+
+  border: 1px solid #ef4444;
+
+  border-radius: 12px;
+
+  background: transparent;
+
+  color: #f87171;
+
+  font-size: 15px;
+  font-weight: 700;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.reject-btn:hover {
+  background: #2a0e0e;
+
+  color: #fca5a5;
+}
+
+
+/* =========================================================
+   TRANSACTION RESULTS
+========================================================= */
+
+.transaction-success,
+.transaction-cancelled,
+.transaction-error {
+  padding: 25px;
+
+  margin-bottom: 28px;
+
+  border-radius: 18px;
+
+  text-align: center;
+}
+
+.transaction-success {
+  border: 1px solid #166534;
+
+  background: #0b2117;
+
+  color: #4ade80;
+}
+
+.transaction-cancelled {
+  border: 1px solid #854d0e;
+
+  background: #251b0a;
+
+  color: #facc15;
+}
+
+.transaction-error {
+  border: 1px solid #7f1d1d;
+
+  background: #2a0e0e;
+
+  color: #f87171;
+}
+
+
+/* =========================================================
+   PRODUCTS
+========================================================= */
+
+.products-grid {
+  max-width: 1000px;
+
+  margin: 25px auto 35px;
+
+  display: grid;
+
+  grid-template-columns: repeat(2, 1fr);
+
+  gap: 22px;
+}
+
+.products-grid::before {
+  content: "Merchant catalog";
+
+  grid-column: 1 / -1;
+
+  text-align: center;
+
+  margin-bottom: -5px;
+
+  color: #64748b;
+
+  font-size: 13px;
+}
+
+.products-grid .product-card {
+  min-height: 235px;
+
+  display: flex;
+  flex-direction: column;
+
+  justify-content: center;
+  align-items: center;
+
+  padding: 30px;
+
+  border: 1px solid #273449;
+
+  border-radius: 20px;
+
+  background: #111827;
+
+  box-shadow:
+    0 12px 35px rgba(0, 0, 0, 0.18);
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.products-grid .product-card:hover {
+  transform: translateY(-4px);
+
+  border-color: #4c3a78;
+
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.product-card h3 {
+  margin: 0 0 14px;
+
+  color: #f8fafc;
+
+  font-size: 21px;
+}
+
+.product-price {
+  margin-bottom: 10px;
+
+  color: #f8fafc;
+
+  font-size: 29px;
+  font-weight: 800;
+}
+
+.product-description {
+  margin-bottom: 8px;
+
+  color: #94a3b8;
+
+  text-align: center;
+}
+
+.stock {
+  margin-bottom: 18px;
+
+  color: #64748b;
+
+  font-size: 13px;
+}
+
+.product-card .primary-btn {
+  margin-top: auto;
+
+  align-self: center;
+}
+
+
+/* =========================================================
+   CART
+========================================================= */
+
+.cart-section {
+  padding: 30px;
+
+  border: 1px solid #273449;
+
+  border-radius: 20px;
+
+  background: #111827;
+
+  text-align: center;
+}
+
+.cart-section h2 {
+  color: #f8fafc;
+}
+
+.cart-section p {
+  color: #cbd5e1;
+}
+
+.cart-section h3 {
+  color: #f8fafc;
+}
+
+
+/* =========================================================
+   AUDIT TRAIL
+========================================================= */
+
+.audit-card {
+  position: relative;
+
+  padding: 35px;
+
+  background: #0f1726;
+
+  border: 1px solid #273449;
+
+  border-radius: 22px;
+
+  box-shadow:
+    0 15px 45px rgba(0, 0, 0, 0.22);
+}
+
+
+/*
+   Header:
+   Title + description centered
+   Refresh button positioned on right
+*/
+
+.audit-card > div:first-child {
+  position: relative;
+
+  min-height: 72px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  margin-bottom: 25px;
+}
+
+.audit-card > div:first-child > div {
+  text-align: center;
+}
+
+.audit-card .card-title {
+  margin: 0 0 7px;
+
+  color: #f8fafc;
+
+  font-size: 28px;
+}
+
+.audit-card .card-title + p {
+  margin: 0;
+
+  color: #94a3b8;
+
+  font-size: 14px;
+}
+
+
+/* Refresh button */
+
+.audit-card > div:first-child .primary-btn {
+  position: absolute;
+
+  right: 0;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  min-width: 120px;
+
+  margin: 0;
+}
+
+
+/* Empty audit state */
+
+.audit-card > p {
+  margin: 30px 0 5px;
+
+  text-align: center;
+
+  color: #64748b;
+
+  font-size: 15px;
+}
+
+
+/* Individual audit event */
+
+.audit-entry {
+  margin-top: 12px;
+
+  padding: 18px;
+
+  border: 1px solid #273449;
+
+  border-radius: 14px;
+
+  background: #0b1220;
+}
+
+.audit-type {
+  color: #a78bfa;
+
+  font-weight: 750;
+
+  font-size: 14px;
+}
+
+.audit-time {
+  margin-top: 5px;
+
+  color: #64748b;
+
+  font-size: 12px;
+}
+
+.audit-entry pre {
+  margin: 13px 0 0;
+
+  padding: 13px;
+
+  overflow-x: auto;
+
+  border-radius: 10px;
+
+  background: #070c15;
+
+  color: #cbd5e1;
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    monospace;
+
+  font-size: 12px;
+
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   DIVIDERS
+========================================================= */
+
+hr {
+  border: none;
+
+  height: 1px;
+
+  margin: 35px 0;
+
+  background: #1e293b;
+}
+
+
+/* =========================================================
+   RESPONSIVE — TABLET
+========================================================= */
+
+@media (max-width: 850px) {
+
+  .header {
+    padding: 0 5%;
+  }
+
+  .container {
+    width: 94%;
+  }
+
+  .budget-row {
+    grid-template-columns: 1fr;
+  }
+
+  .budget-hint {
+    width: 100%;
+  }
+
+  .products-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .audit-card > div:first-child {
+    flex-direction: column;
+
+    gap: 18px;
+
+    padding-bottom: 10px;
+  }
+
+  .audit-card > div:first-child .primary-btn {
+    position: static;
+
+    transform: none;
+
+    margin-top: 5px;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE — MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+
+  .header {
+    height: 70px;
+
+    padding: 0 20px;
+  }
+
+  .logo {
+    font-size: 27px;
+  }
+
+  .header-badge {
+    display: none;
+  }
+
+  .container {
+    width: 92%;
+
+    padding-top: 35px;
+  }
+
+  .hero {
+    margin-bottom: 30px;
+  }
+
+  .hero h1 {
+    font-size: 40px;
+
+    letter-spacing: -1.5px;
+  }
+
+  .hero p {
+    font-size: 15px;
+  }
+
+  .system-status {
+    font-size: 12px;
+
+    padding: 9px 13px;
+  }
+
+  .card,
+  .ai-card,
+  .recommendation,
+  .audit-card {
+    padding: 22px;
+
+    border-radius: 18px;
+  }
+
+  .ai-card-header h2 {
+    font-size: 23px;
+  }
+
+  .ai-card-header p {
+    font-size: 13px;
+  }
+
+  .agent-flow {
+    gap: 6px;
+
+    font-size: 11px;
+  }
+
+  .agent-flow span {
+    padding: 7px 9px;
+  }
+
+  .button-row {
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  .approve-btn,
+  .reject-btn {
+    width: 100%;
+  }
+
+  .recommendation .price {
+    font-size: 35px;
+  }
+
+  .products-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .products-grid .product-card {
+    min-height: 220px;
+  }
+}
+
+/* =========================================================
+   AUDIT TRAIL — FINAL ALIGNMENT
+========================================================= */
+
+.audit-card {
+  text-align: center;
+}
+
+/* Center the Audit Trail heading + description */
+.audit-card > div:first-child {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 90px;
+}
+
+/* Center the title block */
+.audit-card > div:first-child > div {
+  width: 100%;
+  text-align: center;
+}
+
+/* Audit title */
+.audit-card .card-title {
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+/* Audit description */
+.audit-card .card-title + p {
+  margin: 0;
+  text-align: center;
+}
+
+/* Keep Refresh on the right */
+.audit-card > div:first-child .primary-btn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Empty state centered */
+.audit-card > p {
+  text-align: center;
+}
