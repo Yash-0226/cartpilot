@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
+const API_URL = "http://localhost:5000";
+
 function App() {
   const [cart, setCart] = useState([]);
   const [backendMessage, setBackendMessage] = useState("");
@@ -13,88 +15,115 @@ function App() {
   const [auditLog, setAuditLog] = useState([]);
   const [budget, setBudget] = useState(2000);
 
-  // Load Razorpay Checkout
+  // Load Razorpay Checkout.
   useEffect(() => {
     const script = document.createElement("script");
-
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
-
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
   }, []);
 
-  // Load backend data
+  // Load backend status and products.
   useEffect(() => {
-    fetch("http://localhost:5000/api/test")
-      .then((response) => response.json())
-      .then((data) => {
-        setBackendMessage(data.message);
+    fetch(`${API_URL}/api/test`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Backend health check failed.");
+        }
+        return response.json();
       })
+      .then((data) => setBackendMessage(data.message))
       .catch((error) => {
         console.error("Backend connection failed:", error);
+        setBackendMessage("");
       });
 
-    fetch("http://localhost:5000/api/products")
-      .then((response) => response.json())
-      .then((data) => {
-        setProducts(data);
+    fetch(`${API_URL}/api/products`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to load products.");
+        }
+        return response.json();
       })
+      .then((data) => setProducts(data))
       .catch((error) => {
         console.error("Failed to load products:", error);
       });
+
+    loadAuditLog();
   }, []);
 
+  // Refresh audit records when a transaction result changes.
   useEffect(() => {
-  if (orderResult) {
-    loadAuditLog();
-  }
-}, [orderResult]);
+    if (orderResult) {
+      loadAuditLog();
+    }
+  }, [orderResult]);
 
   function addToCart(product) {
-    setCart([...cart, product]);
+    setCart((currentCart) => [...currentCart, product]);
   }
 
+  // --------------------------------------------------
+  // ASK AI AGENT
+  // --------------------------------------------------
+
   async function askAgent() {
-    if (!userMessage.trim()) {
+    if (!userMessage.trim() || loading || isProcessingPayment) {
       return;
     }
 
     setLoading(true);
     setRecommendation(null);
+    setOrderResult(null);
 
     try {
-      const response = await fetch("http://localhost:5000/api/agent", {
+      const response = await fetch(`${API_URL}/api/agent`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-  message: userMessage,
-  budget: budget,
-}),
+          message: userMessage.trim(),
+          budget: Number(budget),
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-  setRecommendation(null);
+        setOrderResult({
+          status: "error",
+          message: data.error || "CartPilot AI is temporarily unavailable.",
+        });
+        return;
+      }
 
-  setOrderResult({
-    status: "error",
-    message:
-      "CartPilot AI is temporarily unavailable. Please try again.",
-  });
+      if (
+        !data.sessionId ||
+        !data.decision ||
+        !data.guardrails
+      ) {
+        throw new Error("The backend returned an incomplete recommendation.");
+      }
 
-  return;
-}
+      // Preserve the session ID for approval and payment verification.
+      setRecommendation({
+        sessionId: data.sessionId,
+        decision: data.decision,
+        guardrails: data.guardrails,
+      });
 
-      setRecommendation(data);
+      await loadAuditLog();
     } catch (error) {
       console.error("AI agent failed:", error);
+
       setRecommendation({
         error: "The AI agent is temporarily unavailable. Please try again.",
       });
@@ -103,527 +132,635 @@ function App() {
     }
   }
 
+  // --------------------------------------------------
+  // APPROVE PURCHASE AND OPEN RAZORPAY CHECKOUT
+  // --------------------------------------------------
 
   async function approvePurchase() {
-  if (!recommendation || isProcessingPayment) {
-    return;
-  }
+    if (
+      !recommendation?.sessionId ||
+      !recommendation?.guardrails?.approved ||
+      isProcessingPayment ||
+      loading
+    ) {
+      return;
+    }
 
-  setIsProcessingPayment(true);
+    setIsProcessingPayment(true);
+    setOrderResult(null);
 
-  try {
-    const response = await fetch("http://localhost:5000/api/approve", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        productId: recommendation.decision.productId,
-        price: recommendation.decision.price,
-        budget: budget,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-  setOrderResult(data);
-  setIsProcessingPayment(false);
-  return;
-}
-
-    const options = {
-      key: data.keyId,
-      amount: data.order.amount * 100,
-      currency: data.order.currency,
-      name: "CartPilot",
-      description: data.order.product,
-      order_id: data.order.razorpayOrderId,
-
-      handler: async function (paymentResponse) {
-  try {
-    const verifyResponse = await fetch(
-      "http://localhost:5000/api/payment/verify",
-      {
+    try {
+      const response = await fetch(`${API_URL}/api/approve`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          razorpay_order_id: paymentResponse.razorpay_order_id,
-          razorpay_payment_id: paymentResponse.razorpay_payment_id,
-          razorpay_signature: paymentResponse.razorpay_signature,
+          sessionId: recommendation.sessionId,
+          productId: recommendation.decision.productId,
+          price: recommendation.decision.price,
+          budget: Number(budget),
         }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setOrderResult({
+          status: data.status || "error",
+          message:
+            data.error ||
+            data.reason ||
+            "Could not approve this purchase.",
+        });
+
+        await loadAuditLog();
+        return;
       }
-    );
 
-    const verifyData = await verifyResponse.json();
+      if (!data.order?.razorpayOrderId || !data.keyId) {
+        throw new Error("The backend returned incomplete payment order details.");
+      }
 
-    if (!verifyResponse.ok) {
-  setOrderResult({
-    status: "verification_failed",
-    message: verifyData.message || "Payment verification failed.",
-  });
+      if (!window.Razorpay) {
+        throw new Error(
+          "Razorpay Checkout has not loaded. Refresh the page and try again."
+        );
+      }
 
-  setIsProcessingPayment(false);
-  return;
-}
+      const options = {
+        key: data.keyId,
+        amount: data.order.amount * 100,
+        currency: data.order.currency,
+        name: "CartPilot",
+        description: data.order.product,
+        order_id: data.order.razorpayOrderId,
 
-    setOrderResult({
-      status: "verified",
-      message: "Payment completed and verified successfully.",
-      order: {
-        razorpayOrderId: paymentResponse.razorpay_order_id,
-        paymentId: paymentResponse.razorpay_payment_id,
-        product: data.order.product,
-        amount: data.order.amount,
-      },
-    });
-    setIsProcessingPayment(false);
-  } catch (error) {
-    console.error("Payment verification failed:", error);
-    setIsProcessingPayment(false);
+        handler: async function (paymentResponse) {
+          try {
+            const verifyResponse = await fetch(
+              `${API_URL}/api/payment/verify`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  // Reuse the exact session created by /api/agent.
+                  sessionId: recommendation.sessionId,
+                  razorpay_order_id:
+                    paymentResponse.razorpay_order_id,
+                  razorpay_payment_id:
+                    paymentResponse.razorpay_payment_id,
+                  razorpay_signature:
+                    paymentResponse.razorpay_signature,
+                }),
+              }
+            );
 
-    setOrderResult({
-      status: "error",
-      message: "Payment completed, but verification could not be completed.",
-    });
-  }
-},
+            const verifyData = await verifyResponse.json();
 
-      modal: {
-        ondismiss: function () {
-          setOrderResult({
-            status: "payment_cancelled",
-            message: "Payment was cancelled.",
-          });
-          setIsProcessingPayment(false);
+            if (!verifyResponse.ok) {
+              setOrderResult({
+                status: verifyData.status || "verification_failed",
+                message:
+                  verifyData.message ||
+                  "Payment verification failed. Check the audit trail.",
+                sessionId: recommendation.sessionId,
+              });
+              return;
+            }
+
+            setOrderResult({
+              status: "verified",
+              message:
+                verifyData.message ||
+                "Payment completed and verified successfully.",
+              sessionId: verifyData.sessionId,
+              order: {
+                razorpayOrderId:
+                  paymentResponse.razorpay_order_id,
+                paymentId:
+                  paymentResponse.razorpay_payment_id,
+                product: data.order.product,
+                amount: data.order.amount,
+              },
+            });
+          } catch (error) {
+            console.error("Payment verification failed:", error);
+
+            setOrderResult({
+              status: "error",
+              message:
+                "Payment may have completed, but verification could not be confirmed. Check the audit trail before retrying.",
+              sessionId: recommendation.sessionId,
+            });
+          } finally {
+            setIsProcessingPayment(false);
+            await loadAuditLog();
+          }
         },
-      },
 
-      theme: {
-        color: "#3399cc",
-      },
-    };
+        modal: {
+          ondismiss: function () {
+            setOrderResult({
+              status: "payment_cancelled",
+              message: "Payment was cancelled or the checkout was closed.",
+              sessionId: recommendation.sessionId,
+            });
 
-    const rzp = new window.Razorpay(options);
+            setIsProcessingPayment(false);
+            loadAuditLog();
+          },
+        },
 
-    rzp.open();
-  } catch (error) {
-    console.error("Payment failed:", error);
+        theme: {
+          color: "#3399cc",
+        },
+      };
 
-    setOrderResult({
-      status: "error",
-      message: "Could not start payment.",
-    });
-    setIsProcessingPayment(false);
+      const razorpayCheckout = new window.Razorpay(options);
+      razorpayCheckout.open();
+    } catch (error) {
+      console.error("Payment initiation failed:", error);
+
+      setOrderResult({
+        status: "error",
+        message:
+          error.message ||
+          "Could not start payment. Check the backend before retrying.",
+        sessionId: recommendation.sessionId,
+      });
+
+      setIsProcessingPayment(false);
+      await loadAuditLog();
+    }
   }
-}
 
-async function testGuardrailBlock() {
-  if (!recommendation) {
-    return;
-  }
+  // --------------------------------------------------
+  // TEST GUARDRAIL BLOCK
+  // --------------------------------------------------
 
-  try {
-    const response = await fetch(
-      "http://localhost:5000/api/approve",
-      {
+  async function testGuardrailBlock() {
+    if (
+      !recommendation?.sessionId ||
+      isProcessingPayment ||
+      loading
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/api/approve`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          sessionId: recommendation.sessionId,
           productId: recommendation.decision.productId,
 
-          // Intentionally tamper with the price
+          // Intentionally alter the price to test server-side protection.
           price: recommendation.decision.price + 1,
 
-          budget: budget,
+          budget: Number(budget),
         }),
+      });
+
+      const data = await response.json();
+
+      setOrderResult({
+        status: data.status || (response.ok ? "success" : "blocked"),
+        message:
+          data.reason ||
+          data.error ||
+          "Transaction was blocked by CartPilot guardrails.",
+        sessionId: recommendation.sessionId,
+      });
+
+      await loadAuditLog();
+    } catch (error) {
+      console.error("Guardrail test failed:", error);
+
+      setOrderResult({
+        status: "error",
+        message: "Could not test the guardrail.",
+        sessionId: recommendation.sessionId,
+      });
+    }
+  }
+
+  // --------------------------------------------------
+  // REJECT PURCHASE
+  // --------------------------------------------------
+
+  function rejectPurchase() {
+    setOrderResult({
+      status: "rejected",
+      message: "Purchase rejected by user.",
+      sessionId: recommendation?.sessionId || null,
+    });
+  }
+
+  // --------------------------------------------------
+  // LOAD PERSISTENT AUDIT LOG
+  // --------------------------------------------------
+
+  async function loadAuditLog() {
+    try {
+      const response = await fetch(`${API_URL}/api/audit-log`);
+
+      if (!response.ok) {
+        throw new Error("Could not fetch audit events.");
       }
-    );
 
-    const data = await response.json();
+      const data = await response.json();
 
-    setOrderResult({
-      status: data.status || "blocked",
-      message:
-        data.reason ||
-        "Transaction was blocked by CartPilot guardrails.",
-    });
-
-    loadAuditLog();
-  } catch (error) {
-    console.error("Guardrail test failed:", error);
-
-    setOrderResult({
-      status: "error",
-      message: "Could not test the guardrail.",
-    });
+      if (Array.isArray(data)) {
+        setAuditLog(data);
+      } else {
+        console.error("Unexpected audit-log response:", data);
+      }
+    } catch (error) {
+      console.error("Failed to load audit log:", error);
+    }
   }
-}
 
-function rejectPurchase() {
-  setOrderResult({
-    status: "rejected",
-    message: "Purchase rejected by user.",
-  });
-}
+  const cartTotal = cart.reduce(
+    (total, item) => total + item.price,
+    0
+  );
 
-async function loadAuditLog() {
-  try {
-    const response = await fetch(
-      "http://localhost:5000/api/audit-log"
-    );
-
-    const data = await response.json();
-
-    setAuditLog(data);
-  } catch (error) {
-    console.error("Failed to load audit log:", error);
-  }
-}
-
-
-  const cartTotal = cart.reduce((total, item) => total + item.price, 0);
+  // --------------------------------------------------
+  // UI
+  // --------------------------------------------------
 
   return (
-  <div className="app">
+    <div className="app">
+      <header className="header">
+        <div className="logo">
+          Cart<span>Pilot</span>
+        </div>
 
-    <header className="header">
-      <div className="logo">
-        Cart<span>Pilot</span>
-      </div>
+        <div className="header-badge">AI-Native Commerce</div>
+      </header>
 
-      <div className="header-badge">
-        AI-Native Commerce
-      </div>
-    </header>
+      <main className="container">
+        <section className="hero">
+          <h1>
+            Shop smarter with <span>AI</span>
+          </h1>
 
-    <main className="container">
+          <p>
+            An AI shopping agent with built-in guardrails and secure payments.
+          </p>
+        </section>
 
-      <section className="hero">
-        <h1>
-          Shop smarter with <span>AI</span>
-        </h1>
+        {backendMessage && (
+          <div className="system-status">
+            <span className="status-dot"></span>
+            <strong>System Online</strong>
+            <span>{backendMessage}</span>
+          </div>
+        )}
 
-        <p>
-          An AI shopping agent with built-in guardrails and secure payments.
-        </p>
-      </section>
+        <div className="ai-card">
+          <div className="ai-card-header">
+            <div className="ai-icon">🤖</div>
+            <div>
+              <h2>CartPilot AI Assistant</h2>
+              <p>Describe what you need and set your spending limit.</p>
+            </div>
+          </div>
 
-     {backendMessage && (
-  <div className="system-status">
-    <span className="status-dot"></span>
-    <strong>System Online</strong>
-    <span>{backendMessage}</span>
-  </div>
-)}
+          <label className="input-label" htmlFor="shopping-request">
+            What are you looking for?
+          </label>
 
-      <div className="ai-card">
-  <div className="ai-card-header">
-    <div className="ai-icon">🤖</div>
-    <div>
-      <h2>CartPilot AI Assistant</h2>
-      <p>Describe what you need and set your spending limit.</p>
-    </div>
-  </div>
+          <input
+            id="shopping-request"
+            type="text"
+            value={userMessage}
+            onChange={(event) => setUserMessage(event.target.value)}
+            placeholder="e.g. I need something to protect my backpack from rain"
+            maxLength={2000}
+            disabled={loading || isProcessingPayment}
+          />
 
-  <label className="input-label">
-    What are you looking for?
-  </label>
+          <div className="budget-row">
+            <div>
+              <label className="input-label" htmlFor="purchase-budget">
+                Purchase Budget
+              </label>
 
-  <input
-    type="text"
-    value={userMessage}
-    onChange={(e) => setUserMessage(e.target.value)}
-    placeholder="e.g. I need something to protect my backpack from rain"
-  />
+              <input
+                id="purchase-budget"
+                type="number"
+                value={budget}
+                onChange={(event) =>
+                  setBudget(Number(event.target.value))
+                }
+                min="1"
+                disabled={loading || isProcessingPayment}
+              />
+            </div>
 
-  <div className="budget-row">
-    <div>
-      <label className="input-label">
-        Purchase Budget
-      </label>
+            <div className="budget-hint">
+              <span>Spending limit</span>
+              <strong>₹{budget}</strong>
+            </div>
+          </div>
 
-      <input
-        type="number"
-        value={budget}
-        onChange={(e) => setBudget(Number(e.target.value))}
-        min="1"
-      />
-    </div>
+          <button
+            className="primary-btn ask-btn"
+            onClick={askAgent}
+            disabled={loading || isProcessingPayment}
+          >
+            {loading ? "Thinking..." : "Ask CartPilot →"}
+          </button>
+        </div>
 
-    <div className="budget-hint">
-      <span>Spending limit</span>
-      <strong>₹{budget}</strong>
-    </div>
-  </div>
+        <br />
 
-  <button
-    className="primary-btn ask-btn"
-    onClick={askAgent}
-    disabled={loading}
-  >
-    {loading ? "Thinking..." : "Ask CartPilot →"}
-  </button>
-</div>
+        <div className="agent-flow">
+          <span>🤖 AI Decision</span>
+          <b>→</b>
+          <span>🛡️ Guardrails</span>
+          <b>→</b>
+          <span>👤 Approval</span>
+          <b>→</b>
+          <span>💳 Payment</span>
+        </div>
 
-      
+        <br />
 
+        <div className="flow-caption">
+          Every purchase passes through deterministic safety checks.
+        </div>
 
+        {recommendation && (
+          <div className="recommendation">
+            <h3>AI Recommendation</h3>
 
+            {recommendation.error ? (
+              <p>{recommendation.error}</p>
+            ) : (
+              <>
+                {recommendation.guardrails.product ? (
+                  <>
+                    <p>
+                      <strong>Product:</strong>{" "}
+                      {recommendation.guardrails.product.name}
+                    </p>
 
-  
+                    <p className="price">
+                      ₹{recommendation.guardrails.product.price}
+                    </p>
+                  </>
+                ) : (
+                  <p>
+                    <strong>Product:</strong> No valid catalog product
+                    was identified.
+                  </p>
+                )}
 
+                <p className="reason">
+                  <strong>Why:</strong>{" "}
+                  {recommendation.decision.reason}
+                </p>
 
-      
-<br></br>
-      <div className="agent-flow">
-  <span>🤖 AI Decision</span>
-  <b>→</b>
-  <span>🛡️ Guardrails</span>
-  <b>→</b>
-  <span>👤 Approval</span>
-  <b>→</b>
-  <span>💳 Payment</span>
-</div>
-<br></br>
-<div className="flow-caption">
-  Every purchase passes through deterministic safety checks.
-</div>
+                <p>
+                  <strong>Budget:</strong> ₹{budget}
+                  {" · "}
+                  <strong>Proposed Price:</strong> ₹
+                  {recommendation.decision.price}
+                </p>
 
-      {recommendation && (
-  <div className="recommendation">
-    <h3>AI Recommendation</h3>
+                <div
+                  className="guardrail"
+                  style={{
+                    background: recommendation.guardrails.approved
+                      ? "#ecfdf3"
+                      : "#fef2f2",
+                    color: recommendation.guardrails.approved
+                      ? "#027a48"
+                      : "#b42318",
+                    border: recommendation.guardrails.approved
+                      ? "1px solid #abefc6"
+                      : "1px solid #fecdca",
+                  }}
+                >
+                  {recommendation.guardrails.approved ? "✓" : "🛡️"}{" "}
+                  {recommendation.guardrails.reason}
+                </div>
 
-    {recommendation.error ? (
-      <p>{recommendation.error}</p>
-    ) : (
-      <>
-        <p>
-          <strong>Product:</strong>{" "}
-          {recommendation.guardrails.product.name}
-        </p>
+                {recommendation.sessionId && (
+                  <p className="audit-time">
+                    <strong>Session ID:</strong>{" "}
+                    {recommendation.sessionId}
+                  </p>
+                )}
 
-        <p className="price">
-          ₹{recommendation.guardrails.product.price}
-        </p>
+                {recommendation.guardrails.approved &&
+                  recommendation.guardrails.requiresApproval && (
+                    <div className="button-row">
+                      <button
+                        className="approve-btn"
+                        onClick={approvePurchase}
+                        disabled={isProcessingPayment || loading}
+                      >
+                        {isProcessingPayment
+                          ? "Processing..."
+                          : "✓ Approve Purchase"}
+                      </button>
 
-        <p className="reason">
-  <strong>Why:</strong>{" "}
-  {recommendation.decision.reason}
-</p>
+                      <button
+                        className="reject-btn"
+                        onClick={testGuardrailBlock}
+                        disabled={isProcessingPayment || loading}
+                      >
+                        🛡️ Test Guardrail Block
+                      </button>
 
-<p>
-  <strong>Budget:</strong> ₹{budget}
-  {" · "}
-  <strong>Product Price:</strong> ₹{recommendation.guardrails.product.price}
-</p>
+                      <button
+                        className="reject-btn"
+                        onClick={rejectPurchase}
+                        disabled={isProcessingPayment || loading}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+              </>
+            )}
+          </div>
+        )}
 
-<div
-  className="guardrail"
-  style={{
-    background:
-      recommendation.guardrails.approved
-        ? "#ecfdf3"
-        : "#fef2f2",
-    color:
-      recommendation.guardrails.approved
-        ? "#027a48"
-        : "#b42318",
-    border:
-      recommendation.guardrails.approved
-        ? "1px solid #abefc6"
-        : "1px solid #fecdca",
-  }}
->
-  {recommendation.guardrails.approved ? "✓" : "🛡️"}{" "}
-  {recommendation.guardrails.reason}
-</div>
+        {orderResult && (
+          <div
+            className={
+              orderResult.status === "verified"
+                ? "card transaction-success"
+                : orderResult.status === "payment_cancelled"
+                  ? "card transaction-cancelled"
+                  : "card transaction-error"
+            }
+          >
+            <h2 className="card-title">💳 Transaction Result</h2>
 
-        {recommendation.guardrails.approved &&
-          recommendation.guardrails.requiresApproval && (
-            <div className="button-row">
+            <p>
+              <strong>Status:</strong>{" "}
+              {orderResult.status === "verified"
+                ? "✓ PAYMENT VERIFIED"
+                : orderResult.status.toUpperCase()}
+            </p>
+
+            <p>{orderResult.message}</p>
+
+            {orderResult.sessionId && (
+              <p>
+                <strong>Session ID:</strong> {orderResult.sessionId}
+              </p>
+            )}
+
+            {orderResult.order && (
+              <>
+                <p>
+                  <strong>Order ID:</strong>{" "}
+                  {orderResult.order.razorpayOrderId}
+                </p>
+
+                {orderResult.order.paymentId && (
+                  <p>
+                    <strong>Payment ID:</strong>{" "}
+                    {orderResult.order.paymentId}
+                  </p>
+                )}
+
+                <p>
+                  <strong>Product:</strong> {orderResult.order.product}
+                </p>
+
+                <p>
+                  <strong>Amount:</strong> ₹{orderResult.order.amount}
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
+        <hr />
+
+        <h2 className="card-title">🛍️ Products</h2>
+
+        <div className="products-grid">
+          {products.map((product) => (
+            <div className="product-card" key={product.id}>
+              <h3>{product.name}</h3>
+
+              <p className="product-price">₹{product.price}</p>
+
+              <p className="product-description">
+                {product.description}
+              </p>
+
+              <p className="stock">
+                {product.category} · {product.stock} in stock
+              </p>
+
               <button
-  className="approve-btn"
-  onClick={approvePurchase}
-  disabled={isProcessingPayment}
->
-  {isProcessingPayment
-    ? "Processing..."
-    : "✓ Approve Purchase"}
-</button>
-              <button
-  className="reject-btn"
-  onClick={testGuardrailBlock}
-  disabled={isProcessingPayment}
->
-  🛡️ Test Guardrail Block
-</button>
-              <button
-                className="reject-btn"
-                onClick={rejectPurchase}
+                className="primary-btn"
+                onClick={() => addToCart(product)}
               >
-                Reject
+                Add to Cart
               </button>
             </div>
+          ))}
+        </div>
+
+        <hr />
+
+        {cart.length > 0 && (
+          <>
+            <hr />
+
+            <section className="cart-section">
+              <h2>🛒 Cart</h2>
+
+              {cart.map((item, index) => (
+                <p key={`${item.id}-${index}`}>
+                  {item.name} — ₹{item.price}
+                </p>
+              ))}
+
+              <h3>Total: ₹{cartTotal}</h3>
+
+              <button className="primary-btn" disabled>
+                Checkout
+              </button>
+            </section>
+          </>
+        )}
+
+        <div className="card audit-card">
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "20px",
+            }}
+          >
+            <div>
+              <h2 className="card-title">🔐 Audit Trail</h2>
+              <p style={{ color: "#667085", margin: 0 }}>
+                Complete record of AI decisions and payment actions.
+              </p>
+            </div>
+
+            <button className="primary-btn" onClick={loadAuditLog}>
+              ↻ Refresh
+            </button>
+          </div>
+
+          {auditLog.length === 0 ? (
+            <p style={{ color: "#667085" }}>
+              No audit events yet.
+            </p>
+          ) : (
+            auditLog.map((entry) => (
+              <div
+                className="audit-entry"
+                key={entry._id || `${entry.timestamp}-${entry.type}`}
+              >
+                <div className="audit-type">
+                  {entry.type === "AI_DECISION" && "🤖 "}
+                  {entry.type === "GUARDRAIL_CHECK" && "🛡️ "}
+                  {entry.type === "GUARDRAIL_BLOCKED" && "🚫 "}
+                  {entry.type === "USER_APPROVAL" && "👤 "}
+                  {entry.type === "RAZORPAY_ORDER" && "💳 "}
+                  {entry.type === "PAYMENT_VERIFICATION" && "✓ "}
+
+                  {entry.type.replaceAll("_", " ")}
+                </div>
+
+                <div className="audit-time">
+                  {new Date(entry.timestamp).toLocaleString()}
+                </div>
+
+                {entry.sessionId && (
+                  <div className="audit-time">
+                    Session: {entry.sessionId}
+                  </div>
+                )}
+
+                <pre>{JSON.stringify(entry.details, null, 2)}</pre>
+              </div>
+            ))
           )}
-      </>
-    )}
-  </div>
-)}
-
-{orderResult && (
-  <div
-    className={
-      orderResult.status === "verified"
-        ? "card transaction-success"
-        : orderResult.status === "payment_cancelled"
-        ? "card transaction-cancelled"
-        : "card transaction-error"
-    }
-  >
-    <h2 className="card-title">💳 Transaction Result</h2>
-
-    <p>
-  <strong>Status:</strong>{" "}
-  {orderResult.status === "verified"
-    ? "✓ PAYMENT VERIFIED"
-    : orderResult.status.toUpperCase()}
-</p>
-
-    <p>{orderResult.message}</p>
-
-    {orderResult.order && (
-      <>
-        <p>
-          <strong>Order ID:</strong> {orderResult.order.razorpayOrderId}
-        </p>
-
-        <p>
-          <strong>Product:</strong> {orderResult.order.product}
-        </p>
-
-        <p>
-          <strong>Amount:</strong> ₹{orderResult.order.amount}
-        </p>
-      </>
-    )}
-  </div>
-)}
-
-
-      <hr />
-
-      <h2 className="card-title">🛍️ Products</h2>
-
-<div className="products-grid">
-  {products.map((product) => (
-    <div className="product-card" key={product.id}>
-      <h3>{product.name}</h3>
-
-      <p className="product-price">
-        ₹{product.price}
-      </p>
-
-      <p className="product-description">
-        {product.description}
-      </p>
-
-      <p className="stock">
-        {product.category} · {product.stock} in stock
-      </p>
-
-      <button
-        className="primary-btn"
-        onClick={() => addToCart(product)}
-      >
-        Add to Cart
-      </button>
-    </div>
-  ))}
-</div>
-      <hr />
-
-      {cart.length > 0 && (
-  <>
-    <hr />
-
-    <section className="cart-section">
-      <h2>🛒 Cart</h2>
-
-      {cart.map((item, index) => (
-        <p key={index}>
-          {item.name} — ₹{item.price}
-        </p>
-      ))}
-
-      <h3>Total: ₹{cartTotal}</h3>
-
-      <button className="primary-btn">
-        Checkout
-      </button>
-    </section>
-  </>
-)}
-
-<div className="card audit-card">
-  <div
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: "20px",
-    }}
-  >
-    <div>
-      <h2 className="card-title">🔐 Audit Trail</h2>
-      <p style={{ color: "#667085", margin: 0 }}>
-        Complete record of AI decisions and payment actions.
-      </p>
-    </div>
-
-    <button
-      className="primary-btn"
-      onClick={loadAuditLog}
-    >
-      ↻ Refresh
-    </button>
-  </div>
-
-  {auditLog.length === 0 ? (
-    <p style={{ color: "#667085" }}>
-      No audit events yet.
-    </p>
-  ) : (
-    auditLog.map((entry, index) => (
-      <div className="audit-entry" key={index}>
-        <div className="audit-type">
-          {entry.type === "AI_DECISION" && "🤖 "}
-          {entry.type === "GUARDRAIL_CHECK" && "🛡️ "}
-          {entry.type === "GUARDRAIL_BLOCKED" && "🚫 "}
-          {entry.type === "USER_APPROVAL" && "👤 "}
-          {entry.type === "RAZORPAY_ORDER" && "💳 "}
-          {entry.type === "PAYMENT_VERIFICATION" && "✓ "}
-
-          {entry.type.replaceAll("_", " ")}
         </div>
-
-        <div className="audit-time">
-          {new Date(entry.timestamp).toLocaleString()}
-        </div>
-
-        <pre>
-          {JSON.stringify(entry.details, null, 2)}
-        </pre>
-      </div>
-    ))
-  )}
-</div>
-        </main>
-  </div>
+      </main>
+    </div>
   );
 }
 
